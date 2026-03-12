@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../services/api';
+import { disconnectSocket } from '../services/socket';
 
 const AuthContext = createContext(null);
 
@@ -34,8 +35,8 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, [loadUser]);
 
-  const signup = async (name, email, password) => {
-    const { data } = await authAPI.signup({ name, email, password });
+  const signup = async (name, email, password, role) => {
+    const { data } = await authAPI.signup({ name, email, password, role });
     localStorage.setItem('token', data.token);
     setUser(data.user);
     setIsAuthenticated(true);
@@ -53,6 +54,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    disconnectSocket();
     setUser(null);
     setIsAuthenticated(false);
   };

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.REACT_APP_API_URL || '/api';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -54,6 +54,14 @@ export const contactsAPI = {
   delete: (id) => api.delete(`/contacts/${id}`),
   deleteMany: (ids) => api.delete('/contacts', { data: { ids } }),
   toggleFavorite: (id) => api.patch(`/contacts/${id}/favorite`)
+};
+
+// ─── Chat API ─────────────────────────────────────────────────────────────────
+
+export const chatAPI = {
+  getUsers: () => api.get('/chat/users'),
+  getMessages: (roomId, page = 1, limit = 30) =>
+    api.get(`/chat/messages/${roomId}`, { params: { page, limit } })
 };
 
 export default api;

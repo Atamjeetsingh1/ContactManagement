@@ -14,6 +14,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
       avatar: user.avatar,
       createdAt: user.createdAt
     }
@@ -45,7 +46,7 @@ router.post('/signup', [
     });
   }
 
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
 
   try {
     // Check if user already exists
@@ -58,7 +59,7 @@ router.post('/signup', [
     }
 
     // Create user
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name, email, password, role });
     sendTokenResponse(user, 201, res);
   } catch (err) {
     console.error('Signup error:', err);
@@ -121,6 +122,7 @@ router.get('/me', protect, async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         avatar: user.avatar,
         createdAt: user.createdAt
       }

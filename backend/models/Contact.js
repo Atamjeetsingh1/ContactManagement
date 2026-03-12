@@ -84,9 +84,8 @@ const ContactSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt timestamp on save
-ContactSchema.pre('save', function(next) {
+ContactSchema.pre('save', function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 // Virtual for full name

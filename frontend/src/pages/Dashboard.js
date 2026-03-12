@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { contactsAPI } from '../services/api';
+import { contactsAPI, chatAPI } from '../services/api';
 import ContactCard from '../components/ContactCard';
 import ContactModal from '../components/ContactModal';
 import toast from 'react-hot-toast';
@@ -18,9 +19,11 @@ const StatCard = ({ label, value, color, icon }) => (
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Contacts state
   const [contacts, setContacts] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [stats, setStats] = useState({ total: 0, favorites: 0, byCategory: {} });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,22 +47,27 @@ const Dashboard = () => {
   const fetchContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { search, category, sortBy, order: sortOrder };
-      if (showFavorites) params.favorite = 'true';
+      if (user?.role === 'customer') {
+        const { data } = await chatAPI.getUsers();
+        setProviders(data.users || []);
+      } else {
+        const params = { search, category, sortBy, order: sortOrder };
+        if (showFavorites) params.favorite = 'true';
 
-      const [contactsRes, statsRes] = await Promise.all([
-        contactsAPI.getAll(params),
-        contactsAPI.getStats()
-      ]);
+        const [contactsRes, statsRes] = await Promise.all([
+          contactsAPI.getAll(params),
+          contactsAPI.getStats()
+        ]);
 
-      setContacts(contactsRes.data.contacts);
-      setStats(statsRes.data.stats);
+        setContacts(contactsRes.data.contacts);
+        setStats(statsRes.data.stats);
+      }
     } catch {
-      toast.error('Failed to load contacts');
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [search, category, sortBy, sortOrder, showFavorites]);
+  }, [user, search, category, sortBy, sortOrder, showFavorites]);
 
   useEffect(() => {
     fetchContacts();
@@ -179,6 +187,77 @@ const Dashboard = () => {
     return stats.byCategory?.[cat] || 0;
   };
 
+  if (user?.role === 'customer') {
+    return (
+      <div className="dashboard">
+        {/* Top Bar */}
+        <header className="topbar" style={{ padding: '0 24px', display: 'flex', alignItems: 'center' }}>
+          <div className="logo-text" style={{ fontSize: '20px', fontWeight: 'bold' }}>ContactHub</div>
+          
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <button className="btn-icon" onClick={() => navigate('/chat')} title="Chat">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
+            <div className="sidebar-avatar" style={{width: '36px', height: '36px'}}>{user?.name?.[0]?.toUpperCase() || 'U'}</div>
+            <button className="btn-icon" onClick={handleLogout} title="Logout">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <main className="main" style={{ padding: '40px 24px', maxWidth: '800px', margin: '0 auto', width: '100%', height: 'calc(100vh - 70px)', overflowY: 'auto' }}>
+          <h1 style={{ marginBottom: '8px', fontSize: '28px', color: '#cdd6f4', fontWeight: 'bold' }}>Your Providers</h1>
+          <p style={{ color: '#bac2de', marginBottom: '40px', fontSize: '15px' }}>
+            Need help? Chat with your providers directly.
+          </p>
+          
+          {loading ? (
+            <div className="loader-ring" style={{ margin: '40px auto' }} />
+          ) : providers.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <h3>No providers available</h3>
+              <p>You don't have any providers assigned to you yet.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {providers.map(provider => (
+                <div key={provider._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', backgroundColor: '#181825', borderRadius: '16px', border: '1px solid #313244', transition: 'transform 0.2s, box-shadow 0.2s' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div className="sidebar-avatar" style={{width: '56px', height: '56px', fontSize: '20px'}}>{provider.name?.[0]?.toUpperCase() || 'P'}</div>
+                    <div>
+                      <div style={{ fontSize: '18px', fontWeight: '600', color: '#cdd6f4' }}>{provider.name}</div>
+                      <div style={{ color: '#a6adc8', fontSize: '14px', marginTop: '4px' }}>{provider.email}</div>
+                    </div>
+                  </div>
+                  <button className="btn btn-primary" style={{ padding: '10px 20px', borderRadius: '10px' }} onClick={() => navigate(`/chat/${provider._id}`)}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight: '8px'}}>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Message
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard">
       {/* ─── Sidebar ─────────────────────────────────────────────────────────────── */}
@@ -234,6 +313,16 @@ const Dashboard = () => {
             <span className="sidebar-count">{stats.favorites}</span>
           </button>
 
+          <button
+            className="sidebar-item"
+            onClick={() => { navigate('/chat'); setSidebarOpen(false); }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Chat
+          </button>
+
           <div className="sidebar-section-label" style={{ marginTop: 12 }}>Categories</div>
 
           {CATEGORIES.filter(c => c !== 'all').map(cat => (
@@ -255,7 +344,18 @@ const Dashboard = () => {
             {user?.name?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="sidebar-user-info">
-            <div className="sidebar-user-name">{user?.name}</div>
+            <div className="sidebar-user-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {user?.name}
+              {user?.role && (
+                <span style={{
+                  fontSize: '9px', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase',
+                  background: user.role === 'provider' ? 'rgba(203, 166, 247, 0.2)' : 'rgba(166, 227, 161, 0.2)',
+                  color: user.role === 'provider' ? '#cba6f7' : '#a6e3a1'
+                }}>
+                  {user.role}
+                </span>
+              )}
+            </div>
             <div className="sidebar-user-email">{user?.email}</div>
           </div>
           <button className="btn-icon" onClick={handleLogout} title="Logout">
@@ -300,20 +400,22 @@ const Dashboard = () => {
             )}
           </div>
 
-          <button className="btn btn-primary create-btn" onClick={handleCreate}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            New Contact
-          </button>
+          {user?.role === 'provider' && (
+            <button className="btn btn-primary create-btn" onClick={handleCreate}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              New Contact
+            </button>
+          )}
         </header>
 
         {/* Toolbar */}
         <div className="toolbar">
           <div className="toolbar-left">
             {/* Select All */}
-            {contacts.length > 0 && (
+            {user?.role === 'provider' && contacts.length > 0 && (
               <label className="select-all-wrap">
                 <div
                   className={`checkbox ${selected.length === contacts.length && contacts.length > 0 ? 'checked' : ''}`}
@@ -332,7 +434,7 @@ const Dashboard = () => {
               </label>
             )}
 
-            {selected.length > 0 && (
+            {user?.role === 'provider' && selected.length > 0 && (
               <button className="btn btn-danger btn-sm" onClick={handleBulkDelete}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="3 6 5 6 21 6"/>
@@ -391,7 +493,7 @@ const Dashboard = () => {
               </div>
               <h3>{search ? 'No results found' : 'No contacts yet'}</h3>
               <p>{search ? `No contacts match "${search}"` : 'Create your first contact to get started'}</p>
-              {!search && (
+              {!search && user?.role === 'provider' && (
                 <button className="btn btn-primary" onClick={handleCreate} style={{ marginTop: 16 }}>
                   Add your first contact
                 </button>
@@ -399,6 +501,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="contacts-list">
+              
               {contacts.map(contact => (
                 <ContactCard
                   key={contact._id}
@@ -408,11 +511,13 @@ const Dashboard = () => {
                   onToggleFavorite={handleToggleFavorite}
                   selected={selected.includes(contact._id)}
                   onSelect={handleSelect}
+                  isProvider={user?.role === 'provider'}
                 />
               ))}
             </div>
           )}
         </div>
+        
       </main>
 
       {/* ─── Contact Modal ──────────────────────────────────────────────────────── */}

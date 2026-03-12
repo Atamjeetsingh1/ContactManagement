@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, query, validationResult } = require('express-validator');
 const Contact = require('../models/Contact');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 
 // All routes are protected
 router.use(protect);
@@ -122,8 +122,8 @@ router.get('/:id', async (req, res) => {
 
 // @route   POST /api/contacts
 // @desc    Create a new contact
-// @access  Private
-router.post('/', [
+// @access  Private (Provider only)
+router.post('/', authorizeRoles('provider'), [
   body('firstName').trim().notEmpty().withMessage('First name is required')
     .isLength({ max: 30 }).withMessage('First name cannot exceed 30 characters'),
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
@@ -154,8 +154,8 @@ router.post('/', [
 
 // @route   PUT /api/contacts/:id
 // @desc    Update a contact
-// @access  Private
-router.put('/:id', [
+// @access  Private (Provider only)
+router.put('/:id', authorizeRoles('provider'), [
   body('firstName').optional().trim().notEmpty().withMessage('First name cannot be empty')
     .isLength({ max: 30 }).withMessage('First name too long'),
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
@@ -193,8 +193,8 @@ router.put('/:id', [
 
 // @route   PATCH /api/contacts/:id/favorite
 // @desc    Toggle favorite status
-// @access  Private
-router.patch('/:id/favorite', async (req, res) => {
+// @access  Private (Provider only)
+router.patch('/:id/favorite', authorizeRoles('provider'), async (req, res) => {
   try {
     const contact = await Contact.findOne({ _id: req.params.id, user: req.user.id });
     if (!contact) {
@@ -212,8 +212,8 @@ router.patch('/:id/favorite', async (req, res) => {
 
 // @route   DELETE /api/contacts/:id
 // @desc    Delete a contact
-// @access  Private
-router.delete('/:id', async (req, res) => {
+// @access  Private (Provider only)
+router.delete('/:id', authorizeRoles('provider'), async (req, res) => {
   try {
     const contact = await Contact.findOne({ _id: req.params.id, user: req.user.id });
     if (!contact) {
@@ -232,8 +232,8 @@ router.delete('/:id', async (req, res) => {
 
 // @route   DELETE /api/contacts
 // @desc    Delete multiple contacts
-// @access  Private
-router.delete('/', async (req, res) => {
+// @access  Private (Provider only)
+router.delete('/', authorizeRoles('provider'), async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {

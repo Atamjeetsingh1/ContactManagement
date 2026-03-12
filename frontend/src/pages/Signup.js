@@ -8,7 +8,7 @@ const Signup = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'customer' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -40,7 +40,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      await signup(form.name, form.email, form.password);
+      await signup(form.name, form.email, form.password, form.role);
       toast.success('Account created! Welcome 🎉');
       navigate('/dashboard');
     } catch (err) {
@@ -112,6 +112,26 @@ const Signup = () => {
               autoFocus
             />
             {errors.name && <span className="form-error">{errors.name}</span>}
+          </div>
+
+          <div className="form-group role-group">
+            <label>I want to sign up as a:</label>
+            <div className="role-selector">
+              <button
+                type="button"
+                className={`role-option ${form.role === 'customer' ? 'active' : ''}`}
+                onClick={() => setForm(prev => ({ ...prev, role: 'customer' }))}
+              >
+                Customer
+              </button>
+              <button
+                type="button"
+                className={`role-option ${form.role === 'provider' ? 'active' : ''}`}
+                onClick={() => setForm(prev => ({ ...prev, role: 'provider' }))}
+              >
+                Provider
+              </button>
+            </div>
           </div>
 
           <div className="form-group">

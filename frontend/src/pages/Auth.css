@@ -140,6 +140,44 @@
   gap: 18px;
 }
 
+/* ─── Role Selector ──────────────────────────────────────────────────────────── */
+.role-group {
+  margin-bottom: 4px;
+}
+
+.role-selector {
+  display: flex;
+  background: rgba(30, 30, 46, 0.5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.role-option {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-sub);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-option:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.role-option.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(203, 166, 247, 0.3);
+}
+
 .auth-alert {
   background: rgba(243, 139, 168, 0.1);
   border: 1px solid rgba(243, 139, 168, 0.3);

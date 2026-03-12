@@ -24,6 +24,11 @@ const UserSchema = new mongoose.Schema({
     minlength: [6, 'Password must be at least 6 characters'],
     select: false // Don't return password by default
   },
+  role: {
+    type: String,
+    enum: ["provider", "customer"],
+    default: "customer"
+  },
   avatar: {
     type: String,
     default: ''
@@ -35,11 +40,10 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+UserSchema.pre('save', async function() {
+  if (!this.isModified('password')) return;
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 // Compare password method
@@ -50,7 +54,7 @@ UserSchema.methods.comparePassword = async function(enteredPassword) {
 // Generate JWT token
 UserSchema.methods.getSignedJwtToken = function() {
   return jwt.sign(
-    { id: this._id, email: this.email },
+    { id: this._id, email: this.email, role: this.role },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || '7d' }
   );

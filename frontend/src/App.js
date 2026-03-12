@@ -5,6 +5,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import ChatUsers from './pages/ChatUsers';
+import Chat from './pages/Chat';
 import './App.css';
 
 // Protected route wrapper
@@ -21,6 +23,27 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Role-protected route wrapper
+const RoleRoute = ({ children, allowedRoles }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="app-loader">
+        <div className="loader-ring"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!user || !allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 };
 
 // Public route: redirect to dashboard if already logged in
@@ -64,6 +87,22 @@ function AppRoutes() {
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <RoleRoute allowedRoles={['provider', 'customer']}>
+            <ChatUsers />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/chat/:contactId"
+        element={
+          <RoleRoute allowedRoles={['provider', 'customer']}>
+            <Chat />
+          </RoleRoute>
         }
       />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

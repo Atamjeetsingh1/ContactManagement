@@ -20,7 +20,7 @@ const getAvatarColor = (name) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const ContactCard = ({ contact, onEdit, onDelete, onToggleFavorite, selected, onSelect }) => {
+const ContactCard = ({ contact, onEdit, onDelete, onToggleFavorite, selected, onSelect, isProvider }) => {
   const initials = getInitials(contact.firstName, contact.lastName);
   const avatarColor = getAvatarColor(contact.firstName + contact.lastName);
   const catColor = CATEGORY_COLORS[contact.category] || CATEGORY_COLORS.other;
@@ -28,15 +28,17 @@ const ContactCard = ({ contact, onEdit, onDelete, onToggleFavorite, selected, on
   return (
     <div className={`contact-card ${selected ? 'selected' : ''}`}>
       {/* Select Checkbox */}
-      <div className="card-select" onClick={(e) => { e.stopPropagation(); onSelect(contact._id); }}>
-        <div className={`checkbox ${selected ? 'checked' : ''}`}>
-          {selected && (
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          )}
+      {isProvider && (
+        <div className="card-select" onClick={(e) => { e.stopPropagation(); onSelect(contact._id); }}>
+          <div className={`checkbox ${selected ? 'checked' : ''}`}>
+            {selected && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Avatar */}
       <div className="card-avatar" style={{ background: `${avatarColor}22`, borderColor: `${avatarColor}44` }}>
@@ -76,41 +78,43 @@ const ContactCard = ({ contact, onEdit, onDelete, onToggleFavorite, selected, on
       </div>
 
       {/* Actions */}
-      <div className="card-actions">
-        <button
-          className={`btn-icon favorite-btn ${contact.isFavorite ? 'is-favorite' : ''}`}
-          onClick={(e) => { e.stopPropagation(); onToggleFavorite(contact._id); }}
-          title={contact.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24"
-            fill={contact.isFavorite ? 'currentColor' : 'none'}
-            stroke="currentColor" strokeWidth="2">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-        </button>
-        <button
-          className="btn-icon edit-btn"
-          onClick={(e) => { e.stopPropagation(); onEdit(contact); }}
-          title="Edit contact"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </button>
-        <button
-          className="btn-icon delete-btn"
-          onClick={(e) => { e.stopPropagation(); onDelete(contact._id, contact.firstName); }}
-          title="Delete contact"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-            <path d="M10 11v6M14 11v6"/>
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-          </svg>
-        </button>
-      </div>
+      {isProvider && (
+        <div className="card-actions">
+          <button
+            className={`btn-icon favorite-btn ${contact.isFavorite ? 'is-favorite' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(contact._id); }}
+            title={contact.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24"
+              fill={contact.isFavorite ? 'currentColor' : 'none'}
+              stroke="currentColor" strokeWidth="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </button>
+          <button
+            className="btn-icon edit-btn"
+            onClick={(e) => { e.stopPropagation(); onEdit(contact); }}
+            title="Edit contact"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button
+            className="btn-icon delete-btn"
+            onClick={(e) => { e.stopPropagation(); onDelete(contact._id, contact.firstName); }}
+            title="Delete contact"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
