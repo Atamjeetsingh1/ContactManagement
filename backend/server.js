@@ -348,6 +348,40 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ─── WebRTC Audio/Video Call ────────────────────────────────────────────────
+  socket.on('call_user', ({ userToCall, signalData, from, name, isVideo }) => {
+    const targetUser = onlineUsers.get(userToCall);
+    if (targetUser) {
+      io.to(targetUser.socketId).emit('call_user', {
+        signal: signalData,
+        from,
+        name,
+        isVideo
+      });
+    }
+  });
+
+  socket.on('answer_call', ({ to, signal }) => {
+    const targetUser = onlineUsers.get(to);
+    if (targetUser) {
+      io.to(targetUser.socketId).emit('call_accepted', signal);
+    }
+  });
+
+  socket.on('ice_candidate', ({ to, candidate }) => {
+    const targetUser = onlineUsers.get(to);
+    if (targetUser) {
+      io.to(targetUser.socketId).emit('ice_candidate', candidate);
+    }
+  });
+
+  socket.on('end_call', ({ to }) => {
+    const targetUser = onlineUsers.get(to);
+    if (targetUser) {
+      io.to(targetUser.socketId).emit('end_call');
+    }
+  });
+
   socket.on('disconnect', async () => {
     console.log(`❌ Disconnected: ${socket.user.name}`);
     

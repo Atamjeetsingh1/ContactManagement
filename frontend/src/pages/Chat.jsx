@@ -4,12 +4,12 @@ import { chatAPI, contactsAPI, usersAPI } from '../services/api';
 import { uploadFile } from '../services/api';
 import { connectSocket, getSocket, sendMessage, sendTyping, stopTyping, addReaction, removeReaction, editMessage, deleteMessage, pinMessage, markRead, joinRoom, leaveRoom } from '../services/socket';
 import { useAuth } from '../context/AuthContext';
+import { useCall } from '../context/CallContext';
 import toast from 'react-hot-toast';
+import EmojiPicker from 'emoji-picker-react';
 import './Chat.css';
 
 const getRoomId = (id1, id2) => [id1, id2].sort().join('_');
-
-const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👀'];
 
 const ContactCard = ({ contact, onSave, onClose }) => {
   const handleCopy = (text) => {
@@ -104,6 +104,7 @@ const FilePreview = ({ file, onRemove }) => {
 export default function Chat() {
   const { contactId } = useParams();
   const { user } = useAuth();
+  const { initiateCall } = useCall();
   const navigate = useNavigate();
 
   const [messages, setMessages] = useState([]);
@@ -577,6 +578,12 @@ export default function Chat() {
             </div>
           </div>
           <div className="chat-header-actions">
+            <button className="icon-btn" onClick={() => initiateCall(contactId, false)} title="Audio Call">
+              📞
+            </button>
+            <button className="icon-btn" onClick={() => initiateCall(contactId, true)} title="Video Call">
+              📹
+            </button>
             <button className="icon-btn" onClick={() => setShowSearch(!showSearch)} title="Search">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8"/>
@@ -758,16 +765,15 @@ export default function Chat() {
                   )}
 
                   {showReactions === msg._id && (
-                    <div className="reactions-picker">
-                      {REACTIONS.map(emoji => (
-                        <button
-                          key={emoji}
-                          onClick={() => handleReaction(msg._id, emoji)}
-                          className={msg.reactions?.some(r => r.emoji === emoji && r.user === user.id) ? 'active' : ''}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                    <div className="reactions-picker" style={{ position: 'absolute', bottom: '100%', zIndex: 50, right: 0 }}>
+                      <EmojiPicker 
+                        onEmojiClick={(emojiData) => handleReaction(msg._id, emojiData.emoji)}
+                        theme="auto"
+                        searchDisabled={true}
+                        skinTonesDisabled={true}
+                        width={280}
+                        height={350}
+                      />
                     </div>
                   )}
 

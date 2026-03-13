@@ -1,0 +1,98 @@
+.call-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.call-modal-content {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 20px;
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: white;
+}
+
+.call-header {
+  text-align: center;
+}
+
+.call-header h3 { margin: 0; font-size: 1.5rem; }
+.call-header p { margin: 5px 0 0; color: #9ca3af; }
+
+.video-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.video-box {
+  position: relative;
+  background: #111827;
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 300px;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.hidden-video {
+  display: none !important;
+}
+
+.video-label {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.call-controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.call-controls button {
+  padding: 12px 24px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-answer { background: #10b981; color: white; }
+.btn-answer:hover { background: #059669; }
+
+.btn-end { background: #ef4444; color: white; }
+.btn-end:hover { background: #dc2626; }
+
+.btn-control { background: #374151; color: white; }
+.btn-control:hover { background: #4b5563; }
+.btn-control.muted, .btn-control.off { background: #7f1d1d; }
