@@ -49,8 +49,7 @@ router.get('/messages/:roomId', async (req, res) => {
     const messages = await Message.find({ roomId })
       .sort({ timestamp: -1 }) // newest first
       .skip(skip)
-      .limit(limit)
-      .lean();
+      .limit(limit);
 
     res.json({ success: true, messages: messages.reverse() }); // return oldest first
   } catch (err) {

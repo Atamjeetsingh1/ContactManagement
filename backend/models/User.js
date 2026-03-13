@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters'],
-    select: false // Don't return password by default
+    select: false
   },
   role: {
     type: String,
@@ -32,6 +32,47 @@ const UserSchema = new mongoose.Schema({
   avatar: {
     type: String,
     default: ''
+  },
+  isOnline: {
+    type: Boolean,
+    default: false
+  },
+  lastSeen: {
+    type: Date,
+    default: null
+  },
+  providerProfile: {
+    title: { type: String, default: '' },
+    bio: { type: String, default: '' },
+    skills: [{ type: String }],
+    location: { type: String, default: '' },
+    hourlyRate: { type: String, default: '' },
+    experience: { type: String, default: '' },
+    linkedin: { type: String, default: '' },
+    isAvailable: { type: Boolean, default: true },
+    responseTime: { type: Number, default: null }
+  },
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  totalReviews: {
+    type: Number,
+    default: 0
+  },
+  totalContactsShared: {
+    type: Number,
+    default: 0
+  },
+  successfulRequests: {
+    type: Number,
+    default: 0
   },
   createdAt: {
     type: Date,

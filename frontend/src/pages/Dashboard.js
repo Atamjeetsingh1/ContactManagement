@@ -47,21 +47,16 @@ const Dashboard = () => {
   const fetchContacts = useCallback(async () => {
     setLoading(true);
     try {
-      if (user?.role === 'customer') {
-        const { data } = await chatAPI.getUsers();
-        setProviders(data.users || []);
-      } else {
-        const params = { search, category, sortBy, order: sortOrder };
-        if (showFavorites) params.favorite = 'true';
+      const params = { search, category, sortBy, order: sortOrder };
+      if (showFavorites) params.favorite = 'true';
 
-        const [contactsRes, statsRes] = await Promise.all([
-          contactsAPI.getAll(params),
-          contactsAPI.getStats()
-        ]);
+      const [contactsRes, statsRes] = await Promise.all([
+        contactsAPI.getAll(params),
+        contactsAPI.getStats()
+      ]);
 
-        setContacts(contactsRes.data.contacts);
-        setStats(statsRes.data.stats);
-      }
+      setContacts(contactsRes.data.contacts);
+      setStats(statsRes.data.stats);
     } catch {
       toast.error('Failed to load data');
     } finally {
@@ -187,77 +182,6 @@ const Dashboard = () => {
     return stats.byCategory?.[cat] || 0;
   };
 
-  if (user?.role === 'customer') {
-    return (
-      <div className="dashboard">
-        {/* Top Bar */}
-        <header className="topbar" style={{ padding: '0 24px', display: 'flex', alignItems: 'center' }}>
-          <div className="logo-text" style={{ fontSize: '20px', fontWeight: 'bold' }}>ContactHub</div>
-          
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button className="btn-icon" onClick={() => navigate('/chat')} title="Chat">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            </button>
-            <div className="sidebar-avatar" style={{width: '36px', height: '36px'}}>{user?.name?.[0]?.toUpperCase() || 'U'}</div>
-            <button className="btn-icon" onClick={handleLogout} title="Logout">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                <polyline points="16 17 21 12 16 7"/>
-                <line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-            </button>
-          </div>
-        </header>
-
-        <main className="main" style={{ padding: '40px 24px', maxWidth: '800px', margin: '0 auto', width: '100%', height: 'calc(100vh - 70px)', overflowY: 'auto' }}>
-          <h1 style={{ marginBottom: '8px', fontSize: '28px', color: '#cdd6f4', fontWeight: 'bold' }}>Your Providers</h1>
-          <p style={{ color: '#bac2de', marginBottom: '40px', fontSize: '15px' }}>
-            Need help? Chat with your providers directly.
-          </p>
-          
-          {loading ? (
-            <div className="loader-ring" style={{ margin: '40px auto' }} />
-          ) : providers.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-              </div>
-              <h3>No providers available</h3>
-              <p>You don't have any providers assigned to you yet.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: '16px' }}>
-              {providers.map(provider => (
-                <div key={provider._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', backgroundColor: '#181825', borderRadius: '16px', border: '1px solid #313244', transition: 'transform 0.2s, box-shadow 0.2s' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div className="sidebar-avatar" style={{width: '56px', height: '56px', fontSize: '20px'}}>{provider.name?.[0]?.toUpperCase() || 'P'}</div>
-                    <div>
-                      <div style={{ fontSize: '18px', fontWeight: '600', color: '#cdd6f4' }}>{provider.name}</div>
-                      <div style={{ color: '#a6adc8', fontSize: '14px', marginTop: '4px' }}>{provider.email}</div>
-                    </div>
-                  </div>
-                  <button className="btn btn-primary" style={{ padding: '10px 20px', borderRadius: '10px' }} onClick={() => navigate(`/chat/${provider._id}`)}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight: '8px'}}>
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    Message
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="dashboard">
       {/* ─── Sidebar ─────────────────────────────────────────────────────────────── */}
@@ -288,7 +212,7 @@ const Dashboard = () => {
 
         {/* Nav */}
         <nav className="sidebar-nav">
-          <div className="sidebar-section-label">Filters</div>
+          <div className="sidebar-section-label">Main</div>
 
           <button
             className={`sidebar-item ${!showFavorites && category === 'all' ? 'active' : ''}`}
@@ -322,6 +246,35 @@ const Dashboard = () => {
             </svg>
             Chat
           </button>
+          
+          <button
+            className="sidebar-item"
+            onClick={() => { navigate('/requests'); setSidebarOpen(false); }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Requests
+          </button>
+
+          {user?.role === 'customer' && (
+            <button
+              className="sidebar-item"
+              onClick={() => { navigate('/providers'); setSidebarOpen(false); }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Find Providers
+            </button>
+          )}
 
           <div className="sidebar-section-label" style={{ marginTop: 12 }}>Categories</div>
 
@@ -493,7 +446,7 @@ const Dashboard = () => {
               </div>
               <h3>{search ? 'No results found' : 'No contacts yet'}</h3>
               <p>{search ? `No contacts match "${search}"` : 'Create your first contact to get started'}</p>
-              {!search && user?.role === 'provider' && (
+              {!search && (
                 <button className="btn btn-primary" onClick={handleCreate} style={{ marginTop: 16 }}>
                   Add your first contact
                 </button>

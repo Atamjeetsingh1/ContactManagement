@@ -7,9 +7,10 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import ChatUsers from './pages/ChatUsers';
 import Chat from './pages/Chat';
+import Requests from './pages/Requests';
+import Providers from './pages/Providers';
 import './App.css';
 
-// Protected route wrapper
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -25,7 +26,6 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-// Role-protected route wrapper
 const RoleRoute = ({ children, allowedRoles }) => {
   const { user, isAuthenticated, loading } = useAuth();
 
@@ -46,7 +46,6 @@ const RoleRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Public route: redirect to dashboard if already logged in
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -86,6 +85,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/requests"
+        element={
+          <ProtectedRoute>
+            <Requests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/providers"
+        element={
+          <ProtectedRoute>
+            <Providers />
           </ProtectedRoute>
         }
       />

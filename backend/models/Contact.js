@@ -1,10 +1,15 @@
 const mongoose = require('mongoose');
 
-const ContactSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.ObjectId,
+const contactSchema = new mongoose.Schema({
+  provider: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    default: null
+  },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
   firstName: {
     type: String,
@@ -43,6 +48,18 @@ const ContactSchema = new mongoose.Schema({
     maxlength: [100, 'Job title cannot exceed 100 characters'],
     default: ''
   },
+  linkedin: {
+    type: String,
+    default: ''
+  },
+  experience: {
+    type: String,
+    default: ''
+  },
+  location: {
+    type: String,
+    default: ''
+  },
   address: {
     street: { type: String, default: '' },
     city: { type: String, default: '' },
@@ -60,14 +77,36 @@ const ContactSchema = new mongoose.Schema({
     maxlength: [500, 'Notes cannot exceed 500 characters'],
     default: ''
   },
+  customerNotes: {
+    type: String,
+    maxlength: [500, 'Notes cannot exceed 500 characters'],
+    default: ''
+  },
+  tags: [{
+    type: String
+  }],
   category: {
     type: String,
-    enum: ['personal', 'work', 'family', 'friend', 'other'],
+    enum: ['developer', 'designer', 'marketer', 'writer', 'other', 'personal', 'work', 'family', 'friend'],
     default: 'other'
   },
   isFavorite: {
     type: Boolean,
     default: false
+  },
+  isShared: {
+    type: Boolean,
+    default: false
+  },
+  sharedAt: {
+    type: Date,
+    default: null
+  },
+  usefulnessRating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    default: null
   },
   avatar: {
     type: String,
@@ -83,18 +122,15 @@ const ContactSchema = new mongoose.Schema({
   }
 });
 
-// Update the updatedAt timestamp on save
-ContactSchema.pre('save', function() {
+contactSchema.pre('save', function() {
   this.updatedAt = Date.now();
 });
 
-// Virtual for full name
-ContactSchema.virtual('fullName').get(function() {
+contactSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`.trim();
 });
 
-// Ensure virtual fields are included in JSON output
-ContactSchema.set('toJSON', { virtuals: true });
-ContactSchema.set('toObject', { virtuals: true });
+contactSchema.set('toJSON', { virtuals: true });
+contactSchema.set('toObject', { virtuals: true });
 
-module.exports = mongoose.model('Contact', ContactSchema);
+module.exports = mongoose.model('Contact', contactSchema);

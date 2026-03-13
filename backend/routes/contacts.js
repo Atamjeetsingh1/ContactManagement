@@ -4,26 +4,33 @@ const { body, query, validationResult } = require('express-validator');
 const Contact = require('../models/Contact');
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 
-// All routes are protected
 router.use(protect);
 
-// @route   GET /api/contacts
-// @desc    Get all contacts for the logged-in user
-// @access  Private
 router.get('/', async (req, res) => {
   try {
     const {
       search,
       category,
       favorite,
+      shared,
+      customerId,
       sortBy = 'createdAt',
       order = 'desc',
       page = 1,
       limit = 50
     } = req.query;
 
-    // Build filter
-    const filter = { user: req.user.id };
+    const filter = {};
+
+    if (req.user.role === 'provider') {
+      filter.provider = req.user._id;
+    } else if (req.user.role === 'customer') {
+      filter.customer = req.user._id;
+    }
+
+    if (customerId) {
+      filter.customer = customerId;
+    }
 
     if (search) {
       filter.$or = [
@@ -43,15 +50,19 @@ router.get('/', async (req, res) => {
       filter.isFavorite = true;
     }
 
-    // Sort
+    if (shared === 'true') {
+      filter.isShared = true;
+    }
+
     const sortOptions = {};
     sortOptions[sortBy] = order === 'asc' ? 1 : -1;
 
-    // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const [contacts, total] = await Promise.all([
       Contact.find(filter)
+        .populate('provider', 'name email')
+        .populate('customer', 'name email')
         .sort(sortOptions)
         .skip(skip)
         .limit(parseInt(limit)),
@@ -72,18 +83,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/contacts/stats
-// @desc    Get contact statistics for the dashboard
-// @access  Private
 router.get('/stats', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const [total, favorites, byCategory] = await Promise.all([
-      Contact.countDocuments({ user: userId }),
-      Contact.countDocuments({ user: userId, isFavorite: true }),
+    let filter = {};
+    if (req.user.role === 'provider') {
+      filter.provider = userId;
+    } else if (req.user.role === 'customer') {
+      filter.customer = userId;
+    }
+
+    const [total, favorites, shared, byCategory] = await Promise.all([
+      Contact.countDocuments(filter),
+      Contact.countDocuments({ ...filter, isFavorite: true }),
+      Contact.countDocuments({ ...filter, isShared: true }),
       Contact.aggregate([
-        { $match: { user: userId } },
+        { $match: filter },
         { $group: { _id: '$category', count: { $sum: 1 } } }
       ])
     ]);
@@ -95,22 +111,30 @@ router.get('/stats', async (req, res) => {
 
     res.json({
       success: true,
-      stats: { total, favorites, byCategory: categoryStats }
+      stats: { total, favorites, shared, byCategory: categoryStats }
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
 
-// @route   GET /api/contacts/:id
-// @desc    Get a single contact
-// @access  Private
 router.get('/:id', async (req, res) => {
   try {
-    const contact = await Contact.findOne({ _id: req.params.id, user: req.user.id });
+    const contact = await Contact.findById(req.params.id)
+      .populate('provider', 'name email')
+      .populate('customer', 'name email');
+    
     if (!contact) {
       return res.status(404).json({ success: false, message: 'Contact not found.' });
     }
+
+    const isOwner = contact.provider && contact.provider._id.toString() === req.user._id.toString();
+    const isCustomer = contact.customer && contact.customer._id.toString() === req.user._id.toString();
+
+    if (!isOwner && !isCustomer && req.user.role !== 'provider') {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
     res.json({ success: true, contact });
   } catch (err) {
     if (err.kind === 'ObjectId') {
@@ -120,15 +144,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   POST /api/contacts
-// @desc    Create a new contact
-// @access  Private (Provider only)
 router.post('/', authorizeRoles('provider'), [
   body('firstName').trim().notEmpty().withMessage('First name is required')
     .isLength({ max: 30 }).withMessage('First name cannot exceed 30 characters'),
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
   body('phone').optional({ checkFalsy: true }).isLength({ max: 20 }).withMessage('Phone too long'),
-  body('category').optional().isIn(['personal', 'work', 'family', 'friend', 'other'])
+  body('category').optional().isIn(['developer', 'designer', 'marketer', 'writer', 'other', 'personal', 'work', 'family', 'friend'])
     .withMessage('Invalid category')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -141,10 +162,13 @@ router.post('/', authorizeRoles('provider'), [
   }
 
   try {
-    const contact = await Contact.create({
-      ...req.body,
-      user: req.user.id
-    });
+    const contactData = { ...req.body };
+    if (req.user.role === 'provider') {
+      contactData.provider = req.user.id;
+    } else {
+      contactData.customer = req.user.id;
+    }
+    const contact = await Contact.create(contactData);
     res.status(201).json({ success: true, contact });
   } catch (err) {
     console.error('Create contact error:', err);
@@ -152,26 +176,39 @@ router.post('/', authorizeRoles('provider'), [
   }
 });
 
-// @route   PUT /api/contacts/:id
-// @desc    Update a contact
-// @access  Private (Provider only)
-router.put('/:id', authorizeRoles('provider'), [
-  body('firstName').optional().trim().notEmpty().withMessage('First name cannot be empty')
-    .isLength({ max: 30 }).withMessage('First name too long'),
-  body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
-  body('category').optional().isIn(['personal', 'work', 'family', 'friend', 'other'])
-    .withMessage('Invalid category')
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: errors.array()[0].msg
-    });
-  }
-
+router.post('/share/:id', async (req, res) => {
   try {
-    let contact = await Contact.findOne({ _id: req.params.id, user: req.user.id });
+    const { customerId } = req.body;
+    const contact = await Contact.findOne({ _id: req.params.id, provider: req.user._id });
+    
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact not found.' });
+    }
+
+    contact.customer = customerId;
+    contact.isShared = true;
+    contact.sharedAt = new Date();
+    await contact.save();
+
+    await User.findByIdAndUpdate(req.user._id, {
+      $inc: { totalContactsShared: 1 }
+    });
+
+    res.json({ success: true, contact });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+router.put('/:id', authorizeRoles('provider'), async (req, res) => {
+  try {
+    let contact = await Contact.findOne({
+      _id: req.params.id,
+      $or: [
+        { provider: req.user._id },
+        { customer: req.user._id }
+      ]
+    });
     if (!contact) {
       return res.status(404).json({ success: false, message: 'Contact not found.' });
     }
@@ -191,12 +228,15 @@ router.put('/:id', authorizeRoles('provider'), [
   }
 });
 
-// @route   PATCH /api/contacts/:id/favorite
-// @desc    Toggle favorite status
-// @access  Private (Provider only)
-router.patch('/:id/favorite', authorizeRoles('provider'), async (req, res) => {
+router.patch('/:id/favorite', async (req, res) => {
   try {
-    const contact = await Contact.findOne({ _id: req.params.id, user: req.user.id });
+    let contact = await Contact.findOne({
+      _id: req.params.id,
+      $or: [
+        { provider: req.user._id },
+        { customer: req.user._id }
+      ]
+    });
     if (!contact) {
       return res.status(404).json({ success: false, message: 'Contact not found.' });
     }
@@ -210,12 +250,83 @@ router.patch('/:id/favorite', authorizeRoles('provider'), async (req, res) => {
   }
 });
 
-// @route   DELETE /api/contacts/:id
-// @desc    Delete a contact
-// @access  Private (Provider only)
+router.patch('/:id/rate', async (req, res) => {
+  try {
+    const { usefulnessRating } = req.body;
+    
+    if (!usefulnessRating || usefulnessRating < 1 || usefulnessRating > 5) {
+      return res.status(400).json({ success: false, message: 'Rating must be between 1 and 5' });
+    }
+
+    const contact = await Contact.findOne({ _id: req.params.id, customer: req.user._id });
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact not found.' });
+    }
+
+    contact.usefulnessRating = usefulnessRating;
+    await contact.save();
+
+    res.json({ success: true, contact });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+router.patch('/:id/notes', async (req, res) => {
+  try {
+    const { customerNotes, tags } = req.body;
+    
+    const contact = await Contact.findOne({
+      _id: req.params.id,
+      $or: [
+        { provider: req.user._id },
+        { customer: req.user._id }
+      ]
+    });
+    
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact not found.' });
+    }
+
+    if (customerNotes !== undefined) contact.customerNotes = customerNotes;
+    if (tags) contact.tags = tags;
+    await contact.save();
+
+    res.json({ success: true, contact });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Bulk delete contacts
+router.delete('/', authorizeRoles('provider'), [
+  body('ids').isArray().withMessage('Contact IDs are required')
+], async (req, res) => {
+  try {
+    const filter = {
+      _id: { $in: req.body.ids },
+      $or: [
+        { provider: req.user._id },
+        { customer: req.user._id }
+      ]
+    };
+    const result = await Contact.deleteMany(filter);
+    res.json({ success: true, count: result.deletedCount });
+  } catch (err) {
+    console.error('Bulk delete error:', err);
+    res.status(500).json({ success: false, message: 'Server error while deleting contacts.' });
+  }
+});
+
 router.delete('/:id', authorizeRoles('provider'), async (req, res) => {
   try {
-    const contact = await Contact.findOne({ _id: req.params.id, user: req.user.id });
+    const contact = await Contact.findOne({
+      _id: req.params.id,
+      $or: [
+        { provider: req.user._id },
+        { customer: req.user._id }
+      ]
+    });
     if (!contact) {
       return res.status(404).json({ success: false, message: 'Contact not found.' });
     }
@@ -226,23 +337,6 @@ router.delete('/:id', authorizeRoles('provider'), async (req, res) => {
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ success: false, message: 'Contact not found.' });
     }
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-});
-
-// @route   DELETE /api/contacts
-// @desc    Delete multiple contacts
-// @access  Private (Provider only)
-router.delete('/', authorizeRoles('provider'), async (req, res) => {
-  try {
-    const { ids } = req.body;
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: 'No contact IDs provided.' });
-    }
-
-    await Contact.deleteMany({ _id: { $in: ids }, user: req.user.id });
-    res.json({ success: true, message: `${ids.length} contact(s) deleted.` });
-  } catch (err) {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
